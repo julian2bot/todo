@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TodoList avec JSON</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .json-controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .json-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+
+        .export-btn {
+            background: linear-gradient(135deg, #4caf50, #45a049);
+            color: white;
+        }
+
+        .import-btn {
+            background: linear-gradient(135deg, #2196f3, #1976d2);
+            color: white;
+        }
+
+        .clear-btn {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+            color: white;
+        }
+
+        .json-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .status-message {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            font-weight: 500;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .status-message.show {
+            opacity: 1;
+        }
+
+        .add-task-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 30px;
+            flex-wrap: wrap;
+        }
+
+        .task-input {
+            flex: 1;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+            min-width: 200px;
+        }
+
+        .task-input:focus {
+            border-color: #667eea;
+        }
+
+        .priority-select {
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            background: white;
+            font-size: 16px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .add-btn {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .add-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .filter-btn.active {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border-color: transparent;
+        }
+
+        .tasks-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .task-item {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            border-left: 5px solid #e0e0e0;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .task-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .task-item.completed {
+            border-left-color: #4caf50;
+            opacity: 0.7;
+        }
+
+        .task-item.in-progress {
+            border-left-color: #ff9800;
+        }
+
+        .task-item.todo {
+            border-left-color: #2196f3;
+        }
+
+        .task-item.high-priority {
+            border-left-color: #f44336;
+        }
+
+        .task-item.medium-priority {
+            border-left-color: #ff9800;
+        }
+
+        .task-item.low-priority {
+            border-left-color: #4caf50;
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .task-text {
+            font-size: 16px;
+            color: #333;
+            flex: 1;
+        }
+
+        .task-text.completed {
+            text-decoration: line-through;
+            color: #999;
+        }
+
+        .task-priority {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .priority-high {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .priority-medium {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .priority-low {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .task-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .task-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .task-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .status-btn {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status-btn.completed {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-btn.in-progress {
+            background: #fff3e0;
+            color: #ef6c00;
+        }
+
+        .edit-btn {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .delete-btn {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        .edit-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 18px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+            border-radius: 15px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        .task-meta {
+            font-size: 12px;
+            color: #999;
+            margin-top: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .add-task-form {
+                flex-direction: column;
+            }
+            
+            .task-input {
+                min-width: 100%;
+            }
+            
+            .filters {
+                justify-content: center;
+            }
+            
+            .task-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .task-actions {
+                align-self: flex-end;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>✨ Ma TodoList JSON</h1>
+        
+        <div class="json-controls">
+            <button class="json-btn export-btn" onclick="exportToJSON()">📥 Exporter JSON</button>
+            <button class="json-btn import-btn" onclick="document.getElementById('jsonFileInput').click()">📤 Importer JSON</button>
+            <button class="json-btn clear-btn" onclick="clearAllTasks()">🗑️ Tout vider</button>
+        </div>
+
+        <input type="file" id="jsonFileInput" class="file-input" accept=".json" onchange="importFromJSON(event)">
+        
+        <div id="statusMessage" class="status-message"></div>
+        
+        <form class="add-task-form" id="addTaskForm">
+            <input type="text" class="task-input" id="taskInput" placeholder="Ajouter une nouvelle tâche..." required>
+            <select class="priority-select" id="prioritySelect">
+                <option value="low">Priorité Basse</option>
+                <option value="medium">Priorité Moyenne</option>
+                <option value="high">Priorité Haute</option>
+            </select>
+            <button type="submit" class="add-btn">Ajouter</button>
+        </form>
+
+        <div class="filters">
+            <button class="filter-btn active" data-filter="all">Toutes</button>
+            <button class="filter-btn" data-filter="todo">À faire</button>
+            <button class="filter-btn" data-filter="in-progress">En cours</button>
+            <button class="filter-btn" data-filter="completed">Terminées</button>
+            <button class="filter-btn" data-filter="high">Priorité Haute</button>
+            <button class="filter-btn" data-filter="medium">Priorité Moyenne</button>
+            <button class="filter-btn" data-filter="low">Priorité Basse</button>
+        </div>
+
+        <div class="tasks-container" id="tasksContainer">
+            <div class="empty-state">
+                <p>Aucune tâche pour le moment. Ajoutez-en une ou importez un fichier JSON ! 🚀</p>
+            </div>
+        </div>
+
+        <div class="stats" id="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalTasks">0</div>
+                <div class="stat-label">Total</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="completedTasks">0</div>
+                <div class="stat-label">Terminées</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="inProgressTasks">0</div>
+                <div class="stat-label">En cours</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="todoTasks">0</div>
+                <div class="stat-label">À faire</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class TodoList {
+            constructor() {
+                this.tasks = [];
+                this.currentFilter = 'all';
+                this.editingTaskId = null;
+                this.init();
+            }
+
+            init() {
+                this.loadTasks();
+                this.bindEvents();
+                this.render();
+            }
+
+            bindEvents() {
+                // Formulaire d'ajout
+                document.getElementById('addTaskForm').addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.addTask();
+                });
+
+                // Filtres
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.addEventListener('click', (e) => {
+                        this.setFilter(e.target.dataset.filter);
+                    });
+                });
+
+                // Conteneur des tâches
+                document.getElementById('tasksContainer').addEventListener('click', (e) => {
+                    const taskId = e.target.closest('.task-item')?.dataset.id;
+                    if (!taskId) return;
+
+                    if (e.target.classList.contains('status-btn')) {
+                        this.toggleTaskStatus(taskId);
+                    } else if (e.target.classList.contains('edit-btn')) {
+                        this.editTask(taskId);
+                    } else if (e.target.classList.contains('delete-btn')) {
+                        this.deleteTask(taskId);
+                    }
+                });
+
+                // Édition inline
+                document.getElementById('tasksContainer').addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter' && e.target.classList.contains('edit-input')) {
+                        this.saveEdit(e.target.closest('.task-item').dataset.id, e.target.value);
+                    } else if (e.key === 'Escape' && e.target.classList.contains('edit-input')) {
+                        this.cancelEdit();
+                    }
+                });
+            }
+
+            addTask() {
+                const input = document.getElementById('taskInput');
+                const priority = document.getElementById('prioritySelect').value;
+                const text = input.value.trim();
+
+                if (!text) return;
+
+                const task = {
+                    id: Date.now().toString(),
+                    text: text,
+                    status: 'todo',
+                    priority: priority,
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                this.tasks.push(task);
+                input.value = '';
+                this.saveTasks();
+                this.render();
+                this.showStatus('Tâche ajoutée avec succès !', 'success');
+            }
+
+            toggleTaskStatus(taskId) {
+                const task = this.tasks.find(t => t.id === taskId);
+                if (!task) return;
+
+                const statuses = ['todo', 'in-progress', 'completed'];
+                const currentIndex = statuses.indexOf(task.status);
+                const nextIndex = (currentIndex + 1) % statuses.length;
+                task.status = statuses[nextIndex];
+                task.updatedAt = new Date().toISOString();
+
+                this.saveTasks();
+                this.render();
+            }
+
+            editTask(taskId) {
+                if (this.editingTaskId) {
+                    this.cancelEdit();
+                }
+                this.editingTaskId = taskId;
+                this.render();
+            }
+
+            saveEdit(taskId, newText) {
+                const task = this.tasks.find(t => t.id === taskId);
+                if (!task || !newText.trim()) return;
+
+                task.text = newText.trim();
+                task.updatedAt = new Date().toISOString();
+                this.editingTaskId = null;
+                this.saveTasks();
+                this.render();
+                this.showStatus('Tâche modifiée avec succès !', 'success');
+            }
+
+            cancelEdit() {
+                this.editingTaskId = null;
+                this.render();
+            }
+
+            deleteTask(taskId) {
+                if (confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+                    this.tasks = this.tasks.filter(t => t.id !== taskId);
+                    this.saveTasks();
+                    this.render();
+                    this.showStatus('Tâche supprimée avec succès !', 'success');
+                }
+            }
+
+            setFilter(filter) {
+                this.currentFilter = filter;
+                document.querySelectorAll('.filter-btn').forEach(btn => {
+                    btn.classList.toggle('active', btn.dataset.filter === filter);
+                });
+                this.render();
+            }
+
+            getFilteredTasks() {
+                let filtered = [...this.tasks];
+
+                if (this.currentFilter !== 'all') {
+                    if (['todo', 'in-progress', 'completed'].includes(this.currentFilter)) {
+                        filtered = filtered.filter(task => task.status === this.currentFilter);
+                    } else if (['high', 'medium', 'low'].includes(this.currentFilter)) {
+                        filtered = filtered.filter(task => task.priority === this.currentFilter);
+                    }
+                }
+
+                // Tri par priorité puis par statut
+                const priorityOrder = { high: 3, medium: 2, low: 1 };
+                const statusOrder = { todo: 3, 'in-progress': 2, completed: 1 };
+
+                filtered.sort((a, b) => {
+                    const priorityDiff = priorityOrder[b.priority] - priorityOrder[a.priority];
+                    if (priorityDiff !== 0) return priorityDiff;
+                    return statusOrder[b.status] - statusOrder[a.status];
+                });
+
+                return filtered;
+            }
+
+            render() {
+                const container = document.getElementById('tasksContainer');
+                const filtered = this.getFilteredTasks();
+
+                if (filtered.length === 0) {
+                    container.innerHTML = '<div class="empty-state"><p>Aucune tâche trouvée 🔍</p></div>';
+                } else {
+                    container.innerHTML = filtered.map(task => this.renderTask(task)).join('');
+                }
+
+                this.updateStats();
+            }
+
+            renderTask(task) {
+                const isEditing = this.editingTaskId === task.id;
+                const statusText = {
+                    'todo': 'À faire',
+                    'in-progress': 'En cours',
+                    'completed': 'Terminée'
+                };
+
+                const createdDate = new Date(task.createdAt).toLocaleDateString('fr-FR');
+                const updatedDate = new Date(task.updatedAt).toLocaleDateString('fr-FR');
+
+                return `
+                    <div class="task-item ${task.status} ${task.priority}-priority" data-id="${task.id}">
+                        <div class="task-header">
+                            <div class="task-text ${task.status}">
+                                ${isEditing ? 
+                                    `<input type="text" class="edit-input" value="${task.text}" autofocus>` :
+                                    task.text
+                                }
+                            </div>
+                            <div class="task-priority priority-${task.priority}">
+                                ${task.priority}
+                            </div>
+                        </div>
+                        <div class="task-actions">
+                            <button class="task-btn status-btn ${task.status}">
+                                ${statusText[task.status]}
+                            </button>
+                            <button class="task-btn edit-btn">
+                                ${isEditing ? 'Annuler' : 'Modifier'}
+                            </button>
+                            <button class="task-btn delete-btn">Supprimer</button>
+                        </div>
+                        <div class="task-meta">
+                            Créée: ${createdDate} | Modifiée: ${updatedDate}
+                        </div>
+                    </div>
+                `;
+            }
+
+            updateStats() {
+                const total = this.tasks.length;
+                const completed = this.tasks.filter(t => t.status === 'completed').length;
+                const inProgress = this.tasks.filter(t => t.status === 'in-progress').length;
+                const todo = this.tasks.filter(t => t.status === 'todo').length;
+
+                document.getElementById('totalTasks').textContent = total;
+                document.getElementById('completedTasks').textContent = completed;
+                document.getElementById('inProgressTasks').textContent = inProgress;
+                document.getElementById('todoTasks').textContent = todo;
+            }
+
+            showStatus(message, type) {
+                const statusDiv = document.getElementById('statusMessage');
+                statusDiv.textContent = message;
+                statusDiv.className = `status-message status-${type} show`;
+                
+                setTimeout(() => {
+                    statusDiv.classList.remove('show');
+                }, 3000);
+            }
+
+            saveTasks() {
+                // Sauvegarde en localStorage comme fallback
+                try {
+                    localStorage.setItem('todolist-tasks', JSON.stringify(this.tasks));
+                } catch (e) {
+                    console.warn('Impossible de sauvegarder les tâches en localStorage');
+                }
+            }
+
+            loadTasks() {
+                try {
+                    const saved = localStorage.getItem('todolist-tasks');
+                    if (saved) {
+                        this.tasks = JSON.parse(saved);
+                        // Ajouter les champs manquants pour la compatibilité
+                        this.tasks.forEach(task => {
+                            if (!task.createdAt) task.createdAt = new Date().toISOString();
+                            if (!task.updatedAt) task.updatedAt = task.createdAt;
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Impossible de charger les tâches sauvegardées');
+                    this.tasks = [];
+                }
+            }
+
+            exportToJSON() {
+                const dataStr = JSON.stringify(this.tasks, null, 2);
+                const dataBlob = new Blob([dataStr], { type: 'application/json' });
+                const url = URL.createObjectURL(dataBlob);
+                
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `todolist-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+                
+                this.showStatus('Fichier JSON exporté avec succès !', 'success');
+            }
+
+            importFromJSON(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const importedTasks = JSON.parse(e.target.result);
+                        
+                        // Validation des données
+                        if (!Array.isArray(importedTasks)) {
+                            throw new Error('Le fichier doit contenir un tableau de tâches');
+                        }
+
+                        // Validation et correction des tâches
+                        const validTasks = importedTasks.map(task => {
+                            if (!task.id || !task.text) {
+                                throw new Error('Chaque tâche doit avoir un id et un texte');
+                            }
+                            
+                            return {
+                                id: task.id,
+                                text: task.text,
+                                status: ['todo', 'in-progress', 'completed'].includes(task.status) ? task.status : 'todo',
+                                priority: ['low', 'medium', 'high'].includes(task.priority) ? task.priority : 'medium',
+                                createdAt: task.createdAt || new Date().toISOString(),
+                                updatedAt: task.updatedAt || task.createdAt || new Date().toISOString()
+                            };
+                        });
+
+                        this.tasks = validTasks;
+                        this.saveTasks();
+                        this.render();
+                        this.showStatus(`${validTasks.length} tâche(s) importée(s) avec succès !`, 'success');
+                        
+                    } catch (error) {
+                        this.showStatus(`Erreur lors de l'import: ${error.message}`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+                
+                // Reset du input file
+                event.target.value = '';
+            }
+
+            clearAllTasks() {
+                if (confirm('Êtes-vous sûr de vouloir supprimer toutes les tâches ?')) {
+                    this.tasks = [];
+                    this.saveTasks();
+                    this.render();
+                    this.showStatus('Toutes les tâches ont été supprimées !', 'success');
+                }
+            }
+        }
+
+        // Fonctions globales pour les boutons
+        let todoApp;
+
+        function exportToJSON() {
+            todoApp.exportToJSON();
+        }
+
+        function importFromJSON(event) {
+            todoApp.importFromJSON(event);
+        }
+
+        function clearAllTasks() {
+            todoApp.clearAllTasks();
+        }
+
+        // Initialisation de l'application
+        document.addEventListener('DOMContentLoaded', () => {
+            todoApp = new TodoList();
+        });
+    </script>
+</body>
+</html>
